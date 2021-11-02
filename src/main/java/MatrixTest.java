@@ -28,31 +28,31 @@ public class MatrixTest {
         NA
     }
 
-    public static HashMap<String, HashMap<String, ValidationResultType>> getMatrix() throws Exception {
+    /**
+     * Returns the HashMap of the Matrix in the Excel sheet.
+     *  @param pExcelFileString the String path of the Excel sheet file
+     * @param pSheetname the String of the Excel sheet workbook name
+     * @return the HashMap of the Matrix.
+     * @throws Exception
+     */
+    public static HashMap<String, HashMap<String, ValidationResultType>> getMatrix(final String pExcelFileString, final String pSheetname) throws Exception {
 
         HashMap<String, HashMap<String, ValidationResultType>> matrix =
                 new HashMap<>();
         String path = null;
 
-        URL resource = Thread.currentThread().getContextClassLoader().getResource("copy1.xlsx");
-        try {
-            path = "C://Users/Harry/Documents/Wise/copy1.xlsx";
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        URL resource = Thread.currentThread().getContextClassLoader().getResource(pExcelFileString);
 
         FileInputStream file = new FileInputStream(new File(resource.toURI()));
 
         XSSFWorkbook workbook = new XSSFWorkbook(file);
-        XSSFSheet sheet = workbook.getSheet("thirdparty");
+        XSSFSheet sheet = workbook.getSheet(pSheetname);
 
         // Iterate through each row one by one
         if (sheet == null) {
-            System.out.println("ERROR: Sheet for Demotion not available in the excel " + path);
             workbook.close();
             file.close();
-            throw new IOException("ERROR: Sheet for Demotion not available in the excel" + path);
+            throw new IOException("ERROR: Sheet for " + pSheetname + " + not available in the excel " + path);
         }
 
 
@@ -83,13 +83,16 @@ public class MatrixTest {
 
                 System.out.println(cellValue);
             }
-
-
         }
 
         return matrix;
     }
 
+    /**
+     * Returns the {@link ValidationResultType} based on the contents of the cell String of the excel sheet
+     * @param pCellValue the contents of the Excel cell
+     * @return the {@link ValidationResultType}
+     */
     private static ValidationResultType getValidationResult(final String pCellValue) {
         if (pCellValue.equalsIgnoreCase("*") || pCellValue.equalsIgnoreCase("ok"))
             return ValidationResultType.OK;
@@ -97,9 +100,15 @@ public class MatrixTest {
             return ValidationResultType.ERROR;
         else if (pCellValue.equalsIgnoreCase("w"))
             return ValidationResultType.WARNING;
-        else return ValidationResultType.NA;
+        else return ValidationResultType.ERROR;
+        //If blank, then error, like in the standard transitions
     }
 
+    /**
+     * Parses the String of the Excel sheet based on its {@link org.apache.poi.ss.usermodel.CellType}
+     * @param pCell the cell
+     * @return the parsed String
+     */
     private static String parseCell(final Cell pCell) {
         switch (pCell.getCellType()) {
             case NUMERIC:
@@ -112,6 +121,6 @@ public class MatrixTest {
     }
 
     public static void main(String[] args) throws Exception {
-        HashMap<String, HashMap<String, ValidationResultType>> matrix = getMatrix();
+        HashMap<String, HashMap<String, ValidationResultType>> matrix = getMatrix("copy1.xlsx", "thirdparty");
     }
 }
