@@ -39,10 +39,10 @@ public class MatrixTest {
 
         URL resource = Thread.currentThread().getContextClassLoader().getResource(pExcelFileString);
 
-        FileInputStream file = new FileInputStream(new File(resource.toURI()));
+        final FileInputStream file = new FileInputStream(new File(resource.toURI()));
 
-        XSSFWorkbook workbook = new XSSFWorkbook(file);
-        XSSFSheet sheet = workbook.getSheet(pSheetname);
+        final XSSFWorkbook workbook = new XSSFWorkbook(file);
+        final XSSFSheet sheet = workbook.getSheet(pSheetname);
 
         // Iterate through each row one by one
         if (sheet == null) {
@@ -51,8 +51,6 @@ public class MatrixTest {
             throw new IOException("ERROR: Sheet for " + pSheetname + " + not available in the excel " + path);
         }
 
-
-        List<String> mlcFrom = new ArrayList<>();
         List<String> mlcTo = new ArrayList<>();
 
         LinkedHashMap<String, Integer> mlcFromMap = new LinkedHashMap<>();
@@ -60,18 +58,16 @@ public class MatrixTest {
         Iterator<Row> rowIterator = sheet.rowIterator();
 
         while (rowIterator.hasNext()) {
-
-            Row row = rowIterator.next();
-            Iterator<Cell> cellIterator = row.cellIterator();
+            final Row row = rowIterator.next();
+            final Iterator<Cell> cellIterator = row.cellIterator();
 
             int i = 0;
             while (cellIterator.hasNext()) {
-                Cell cell = cellIterator.next();
+                final Cell cell = cellIterator.next();
 
-                String cellValue = parseCell(cell);
+                final String cellValue = parseCell(cell);
 
                 if (cell.getRowIndex() > 0 && cell.getColumnIndex() == 0) {
-                    mlcFrom.add(cellValue);
                     mlcFromMap.put(cellValue, cell.getRowIndex());
                 }
                 if (cell.getRowIndex() == 0 && cell.getColumnIndex() > 0) {
@@ -84,19 +80,16 @@ public class MatrixTest {
         Map<String, Integer> sortedMap = sortByValue(mlcFromMap);
 
         for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
-            Row innerRow = sheet.getRow(entry.getValue());
+            final Row innerRow = sheet.getRow(entry.getValue());
             Iterator<Cell> cellIterator = innerRow.cellIterator();
 
             LinkedHashMap<String, ValidationResultType> innerMap = new LinkedHashMap<>();
             int mlcToIndex = 0;
             while (mlcToIndex < mlcTo.size()) {
-
                 if (cellIterator.hasNext()) {
                     Cell cell = cellIterator.next();
-
                     if (cell.getColumnIndex() > 0 && cell.getRowIndex() > 0) {
-                        ValidationResultType result = getValidationResult(parseCell(cell));
-
+                        final ValidationResultType result = getValidationResult(parseCell(cell));
                         final String mlcToStr = mlcTo.get(mlcToIndex);
                         innerMap.put(mlcToStr, result);
 
@@ -136,7 +129,7 @@ public class MatrixTest {
         else if (pCellValue.equalsIgnoreCase("w"))
             return ValidationResultType.WARNING;
         else return ValidationResultType.ERROR;
-        //If blank, then error, like in the standard transitions
+        //If blank, then error, like in the standard transitions, or NA in the other Excel sheets
     }
 
     /**
@@ -156,6 +149,8 @@ public class MatrixTest {
     }
 
     public static void main(String[] args) throws Exception {
-        HashMap<String, LinkedHashMap<String, ValidationResultType>> matrix = getMatrix("copy1.xlsx", "thirdparty");
+        HashMap<String, LinkedHashMap<String, ValidationResultType>> matrix = getMatrix("copy1.xlsx", "buy");
+
+        int i = 0;
     }
 }
