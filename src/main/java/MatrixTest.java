@@ -6,13 +6,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Author: Harry Walker
@@ -25,7 +20,6 @@ public class MatrixTest {
         OK,
         WARNING,
         ERROR,
-        NA
     }
 
     /**
@@ -35,9 +29,11 @@ public class MatrixTest {
      * @return the HashMap of the Matrix.
      * @throws Exception
      */
-    public static HashMap<String, HashMap<String, ValidationResultType>> getMatrix(final String pExcelFileString, final String pSheetname) throws Exception {
+    public static HashMap<String, LinkedHashMap<String, ValidationResultType>> getMatrix(final String pExcelFileString,
+                                                                                   final String pSheetname)
+            throws Exception {
 
-        HashMap<String, HashMap<String, ValidationResultType>> matrix =
+        HashMap<String, LinkedHashMap<String, ValidationResultType>> matrix =
                 new HashMap<>();
         String path = null;
 
@@ -59,20 +55,13 @@ public class MatrixTest {
         List<String> mlcFrom = new ArrayList<>();
         List<String> mlcTo = new ArrayList<>();
 
+        LinkedHashMap<String, Integer> mlcFromMap = new LinkedHashMap<>();
+
         Iterator<Row> rowIterator = sheet.rowIterator();
 
         while (rowIterator.hasNext()) {
 
             Row row = rowIterator.next();
-
-            String mlcStatusFrom = "";
-            if (row.cellIterator().hasNext()) {
-                if (row.cellIterator().next().getRowIndex() != 0) {
-                    mlcStatusFrom = parseCell(row.cellIterator().next());
-                } else {
-                    mlcStatusFrom = "10";
-                }
-            }
             Iterator<Cell> cellIterator = row.cellIterator();
 
             int i = 0;
@@ -81,11 +70,57 @@ public class MatrixTest {
 
                 String cellValue = parseCell(cell);
 
-                System.out.println(cellValue);
+                if (cell.getRowIndex() > 0 && cell.getColumnIndex() == 0) {
+                    mlcFrom.add(cellValue);
+                    mlcFromMap.put(cellValue, cell.getRowIndex());
+                }
+                if (cell.getRowIndex() == 0 && cell.getColumnIndex() > 0) {
+                    mlcTo.add(cellValue);
+                }
             }
         }
 
+
+        Map<String, Integer> sortedMap = sortByValue(mlcFromMap);
+
+        for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
+            Row innerRow = sheet.getRow(entry.getValue());
+            Iterator<Cell> cellIterator = innerRow.cellIterator();
+
+            LinkedHashMap<String, ValidationResultType> innerMap = new LinkedHashMap<>();
+            int mlcToIndex = 0;
+            while (mlcToIndex < mlcTo.size()) {
+
+                if (cellIterator.hasNext()) {
+                    Cell cell = cellIterator.next();
+
+                    if (cell.getColumnIndex() > 0 && cell.getRowIndex() > 0) {
+                        ValidationResultType result = getValidationResult(parseCell(cell));
+
+                        final String mlcToStr = mlcTo.get(mlcToIndex);
+                        innerMap.put(mlcToStr, result);
+
+                        matrix.put(entry.getKey(), innerMap);
+
+                        mlcToIndex++;
+                    }
+                }
+
+            }
+        }
         return matrix;
+    }
+
+    public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+        List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
+        list.sort(Map.Entry.comparingByValue());
+
+        Map<K, V> result = new LinkedHashMap<>();
+        for (Map.Entry<K, V> entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return result;
     }
 
     /**
@@ -112,7 +147,7 @@ public class MatrixTest {
     private static String parseCell(final Cell pCell) {
         switch (pCell.getCellType()) {
             case NUMERIC:
-                return String.valueOf(pCell.getNumericCellValue());
+                return String.valueOf((int)pCell.getNumericCellValue());
             case STRING:
                 return String.valueOf(pCell.getStringCellValue());
             default:
@@ -121,6 +156,6 @@ public class MatrixTest {
     }
 
     public static void main(String[] args) throws Exception {
-        HashMap<String, HashMap<String, ValidationResultType>> matrix = getMatrix("copy1.xlsx", "thirdparty");
+        HashMap<String, LinkedHashMap<String, ValidationResultType>> matrix = getMatrix("copy1.xlsx", "thirdparty");
     }
 }
